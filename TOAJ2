@@ -1,0 +1,84 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using Bingosoft.Security;
+using System.Text;
+
+namespace Bingosoft.Metro.Portal.SystemsService
+{
+    public partial class TOAJ2 : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            //Response.Redirect("http://www.baidu.com", false);
+            var user = SecurityContext.User;
+            string LoginId = user.LoginId;
+            string pwd = null;
+            if (!string.IsNullOrEmpty(LoginId)) 
+            {
+                pwd = getMD5(Encoding.Default.GetBytes(LoginId + "xmdtcvv"));
+            }
+
+            string url = "http://10.3.52.11:88/xmdt/xmdt2015/AutoLogin_jc.aspx?UserName={0}&pwd={1}";
+            Response.Redirect(string.Format(url, LoginId, pwd), false);
+        }
+
+        /// <summary>
+        /// MD5加密方法
+        /// </summary>
+        /// <param name="original"></param>
+        /// <returns></returns>
+        private string getMD5(byte[] original)
+        {
+            string s = null;
+            char[] hexDigits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };// 用来将字节转换成16进制表示的字符
+
+            try 
+            {
+                System.Security.Cryptography.MD5CryptoServiceProvider hashmd5 = new System.Security.Cryptography.MD5CryptoServiceProvider();
+                byte[] keyhasd = hashmd5.ComputeHash(original);
+                // 用字节表示就是 16 个字节  
+                char[] str = new char[16 * 2];// 每个字节用 16 进制表示的话，使用两个字符， 所以表示成 16  
+
+                int k = 0;
+
+                for (int i = 0; i < 16; i++)
+                {
+                    byte byte0 = keyhasd[i];
+                    str[k++] = hexDigits[rightMove(byte0,4) & 0xf];
+
+                    str[k++] = hexDigits[byte0 & 0xf];
+                }
+                s = new String(str);
+
+                hashmd5 = null;
+            }
+            catch (Exception e) {  
+                // TODO Auto-generated catch block  
+            }
+
+            return s;
+        }
+
+        /// <summary>
+        /// 对应Java >>>运算符
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="pos"></param>
+        /// <returns></returns>
+        int rightMove(int value, int pos)
+        {
+            if (pos != 0)  //移动 0 位时直接返回原值
+            {
+                int mask = 0x7fffffff;     // int.MaxValue = 0x7FFFFFFF 整数最大值
+                value >>= 1;     //第一次做右移，把符号也算上，无符号整数最高位不表示正负但操作数还是有符号的，有符号数右移1位，正数时高位补0，负数时高位补1
+                value &= mask;     //和整数最大值进行逻辑与运算，运算后的结果为忽略表示正负值的最高位
+                value >>= pos - 1;     //逻辑运算后的值无符号，对无符号的值直接做右移运算，计算剩下的位
+            }
+            return value;
+        }
+    }
+}
