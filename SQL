@@ -1,0 +1,37 @@
+    SELECT u.Id,u.Name
+    FROM SEC_wf_UserRole ur
+    INNER JOIN SEC_wf_role r        ON ur.WfRoleId  = r.Id
+    INNER JOIN SEC_Organization o   ON r.OrgId      = o.Id
+    INNER JOIN SEC_Role rt          ON r.RoleId     = rt.Id AND rt.Name='直属主管'
+    INNER JOIN SEC_User u           ON ur.UserId    = u.Id  AND u.STATUS = 'enabled'
+    RIGHT JOIN (
+        --剪切部门WBS
+        SELECT SUBSTRING(DeptWBS,0,9) deptNo
+        FROM (
+            --解析目标用户群所属的部门集合的WBS  
+            SELECT DeptWBS
+            FROM SEC_Organization  t1
+            RIGHT JOIN (
+                --解析目标用户群所属的部门集合
+                SELECT OrgId
+                FROM SEC_User 
+                WHERE   1=1
+                --过滤出传进的人员数据
+                AND charindex('|'+CAST(ID as varchar(50))+'|','|'+#UsersId#+'|')>0
+                --过滤角色本人
+                AND id not in (
+                    SELECT ur2.UserId 
+                    FROM SEC_wf_UserRole ur2 
+                    INNER JOIN SEC_wf_role r2 ON ur2.WfRoleId=r2.Id 
+                    INNER JOIN SEC_Role rt2 ON r2.RoleId=rt2.Id 
+                    WHERE rt2.Name IN ('部门领导','副总工','部门负责人','总经理','董事长','分管领导','直属主管'))
+            ) t2   
+            ON t1.Id=t2.OrgId
+            --取第三层部门
+            WHERE LEN(t1.DeptWBS) > 5
+        ) t3
+        WHERE 1=1
+    ) t4 
+    ON o.DeptWBS = t4.deptNo 
+    WHERE 1=1
+    AND u.Id IS NOT NULL
